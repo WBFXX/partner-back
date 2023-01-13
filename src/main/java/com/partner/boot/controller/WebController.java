@@ -1,23 +1,25 @@
 package com.partner.boot.controller;
 
-//import com.partner.boot.common.Result;
-//import com.partner.boot.controller.domain.LoginDTO;
-//import com.partner.boot.controller.domain.UserRequest;
-//import com.partner.boot.entity.User;
-//import com.partner.boot.service.IUserService;
+import com.partner.boot.common.Result;
+import com.partner.boot.entity.User;
+import com.partner.boot.service.IUserService;
 import io.swagger.annotations.Api;
-
-import lombok.extern.slf4j.Slf4j;
-import com.sun.org.apache.xpath.internal.objects.XString;
 import io.swagger.annotations.ApiOperation;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import java.rmi.ServerException;
 
 @Api(tags = "无权限接口列表")
 @RestController
 public class WebController
 {
+    @Resource
+    IUserService userService;
+
     @ApiOperation(value = "版本校验接口")
     @GetMapping(value = "/")
     public String version() {
@@ -31,8 +33,14 @@ public class WebController
 
         return ver;
     }
-}
+    @ApiOperation(value = "用户登录")
+    @PostMapping("/login")
+    public Result login(@RequestBody User user) throws ServerException {
+        User res = userService.login(user);
+        return Result.success(res);
+    }
 
+}
 //@Slf4j
 //public class WebController {
 //

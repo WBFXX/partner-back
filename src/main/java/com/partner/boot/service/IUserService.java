@@ -3,6 +3,8 @@ package com.partner.boot.service;
 import com.partner.boot.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.rmi.ServerException;
+
 /**
  * <p>
  *  服务类
@@ -13,4 +15,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IUserService extends IService<User> {
 
+    User login(User user) ;
 }
