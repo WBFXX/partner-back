@@ -33,12 +33,19 @@ public class WebController
 
         return ver;
     }
-    @ApiOperation(value = "用户登录")
+    @ApiOperation(value = "用户登录接口")
     @PostMapping("/login")
-    public Result login(@RequestBody User user) throws ServerException {
+    public Result login(@RequestBody User user){
         User res = userService.login(user);
         return Result.success(res);
     }
+    @ApiOperation(value = "用户注册接口")
+    @PostMapping("/register")
+    public Result register(@RequestBody User user) {
+        User res = userService.register(user);
+        return Result.success(res);
+    }
+
 
 }
 //@Slf4j
