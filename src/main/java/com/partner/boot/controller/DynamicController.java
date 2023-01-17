@@ -1,4 +1,4 @@
-package ${package.Controller};
+package com.partner.boot.controller;
 
 import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelReader;
@@ -12,87 +12,69 @@ import javax.annotation.Resource;
 import java.io.InputStream;
 import java.util.List;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import ${package.Parent}.common.Result;
+import com.partner.boot.common.Result;
 import org.springframework.web.multipart.MultipartFile;
-import ${package.Service}.${table.serviceName};
-import ${package.Entity}.${entity};
+import com.partner.boot.service.IDynamicService;
+import com.partner.boot.entity.Dynamic;
 
-<#if restControllerStyle>
     import org.springframework.web.bind.annotation.RestController;
-<#else>
-    import org.springframework.stereotype.Controller;
-</#if>
-<#if superControllerClassPackage??>
-    import ${superControllerClassPackage};
-</#if>
 
 /**
 * <p>
-    * ${table.comment!} 前端控制器
+    * 动态 前端控制器
     * </p>
 *
-* @author ${author}
-* @since ${date}
+* @author 现计科1901武泊帆
+* @since 2023-01-17
 */
-<#if restControllerStyle>
     @RestController
-<#else>
-    @Controller
-</#if>
-@RequestMapping("<#if package.ModuleName?? && package.ModuleName != "">/${package.ModuleName}</#if>/<#if controllerMappingHyphenStyle>${controllerMappingHyphen}<#else>${table.entityPath}</#if>")
-<#if kotlin>
-    class ${table.controllerName}<#if superControllerClass??> : ${superControllerClass}()</#if>
-<#else>
-    <#if superControllerClass??>
-        public class ${table.controllerName} extends ${superControllerClass} {
-    <#else>
-        public class ${table.controllerName} {
-    </#if>
+@RequestMapping("/dynamic")
+        public class DynamicController {
 
     @Resource
-    private ${table.serviceName} ${table.entityPath}Service;
+    private IDynamicService dynamicService;
 
     // 新增或者更新
     @PostMapping
-    public Result save(@RequestBody ${entity} ${table.entityPath}) {
-    if (${table.entityPath}.getId() == null) {
+    public Result save(@RequestBody Dynamic dynamic) {
+    if (dynamic.getId() == null) {
 
     } else {
 
     }
-    ${table.entityPath}Service.saveOrUpdate(${table.entityPath});
+    dynamicService.saveOrUpdate(dynamic);
     return Result.success();
     }
 
     @DeleteMapping("/{id}")
     public Result delete(@PathVariable Integer id) {
-    ${table.entityPath}Service.removeById(id);
+    dynamicService.removeById(id);
     return Result.success();
     }
 
     @PostMapping("/del/batch")
     public Result deleteBatch(@RequestBody List<Integer> ids) {
-    ${table.entityPath}Service.removeByIds(ids);
+    dynamicService.removeByIds(ids);
     return Result.success();
     }
 
     @GetMapping
     public Result findAll() {
-    return Result.success(${table.entityPath}Service.list());
+    return Result.success(dynamicService.list());
     }
 
     @GetMapping("/{id}")
     public Result findOne(@PathVariable Integer id) {
-    return Result.success(${table.entityPath}Service.getById(id));
+    return Result.success(dynamicService.getById(id));
     }
 
     @GetMapping("/page")
     public Result findPage(@RequestParam(defaultValue = "") String name,
     @RequestParam Integer pageNum,
     @RequestParam Integer pageSize) {
-    QueryWrapper<${entity}> queryWrapper = new QueryWrapper<${entity}>().orderByDesc("id");
+    QueryWrapper<Dynamic> queryWrapper = new QueryWrapper<Dynamic>().orderByDesc("id");
     queryWrapper.like(!"".equals(name), "name", name);
-    return Result.success(${table.entityPath}Service.page(new Page<>(pageNum, pageSize), queryWrapper));
+    return Result.success(dynamicService.page(new Page<>(pageNum, pageSize), queryWrapper));
     }
 
     /**
@@ -101,7 +83,7 @@ import ${package.Entity}.${entity};
     @GetMapping("/export")
     public void export(HttpServletResponse response) throws Exception {
     // 从数据库查询出所有的数据
-    List<${entity}> list = ${table.entityPath}Service.list();
+    List<Dynamic> list = dynamicService.list();
     // 在内存操作，写出到浏览器
     ExcelWriter writer = ExcelUtil.getWriter(true);
 
@@ -110,7 +92,7 @@ import ${package.Entity}.${entity};
 
     // 设置浏览器响应的格式
     response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8");
-    String fileName = URLEncoder.encode("${entity}信息表", "UTF-8");
+    String fileName = URLEncoder.encode("Dynamic信息表", "UTF-8");
     response.setHeader("Content-Disposition", "attachment;filename=" + fileName + ".xlsx");
 
     ServletOutputStream out = response.getOutputStream();
@@ -130,11 +112,10 @@ import ${package.Entity}.${entity};
     InputStream inputStream = file.getInputStream();
     ExcelReader reader = ExcelUtil.getReader(inputStream);
     // 通过 javabean的方式读取Excel内的对象，但是要求表头必须是英文，跟javabean的属性要对应起来
-    List<${entity}> list = reader.readAll(${entity}.class);
+    List<Dynamic> list = reader.readAll(Dynamic.class);
 
-    ${table.entityPath}Service.saveBatch(list);
+    dynamicService.saveBatch(list);
     return Result.success();
     }
 
     }
-</#if>

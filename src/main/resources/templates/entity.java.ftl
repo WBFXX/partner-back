@@ -6,9 +6,6 @@ package ${package.Entity};
 import cn.hutool.core.annotation.Alias;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.partner.boot.common.LDTConfig;
 <#if entityLombokModel>
     import lombok.Getter;
     import lombok.Setter;
@@ -78,8 +75,6 @@ import com.partner.boot.common.LDTConfig;
             @TableField(value = "${field.annotationColumnName}", fill = FieldFill.${field.fill})
         <#else>
             @TableField(fill = FieldFill.${field.fill})
-            @JsonDeserialize(using = LDTConfig.CmzLdtDeSerializer.class)
-            @JsonSerialize(using = LDTConfig.CmzLdtSerializer.class)
         </#if>
     <#elseif field.convert>
         @TableField("${field.annotationColumnName}")
@@ -90,7 +85,7 @@ import com.partner.boot.common.LDTConfig;
     </#if>
 <#-- 逻辑删除注解 -->
     <#if field.logicDeleteField>
-        @TableLogic(value = "0", delval = "id")
+        @TableLogic
     </#if>
     private ${field.propertyType} ${field.propertyName};
 </#list>

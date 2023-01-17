@@ -18,9 +18,9 @@ import java.util.Properties;
  */
 public class CodeGenerator {
 
-    private static final String TABLE = "sys_user";
+    private static final String TABLE = "dynamic";
     private static final String PACKAGE_NAME = "com.partner.boot";
-    private static final String AUTHOR = "计科1901武泊帆";
+    private static final String AUTHOR = "现计科1901武泊帆";
 
     /*=========================  下面的不用改动  =========================*/
 
@@ -56,10 +56,7 @@ public class CodeGenerator {
                     builder.controllerBuilder().fileOverride().enableRestStyle().enableHyphenStyle()
                             .serviceBuilder().fileOverride()
                             .mapperBuilder().fileOverride()
-                            .entityBuilder().fileOverride().enableLombok()
-                            .logicDeleteColumnName("deleted")
-                            .addTableFills(new Column("create_time", FieldFill.INSERT))
-                            .addTableFills(new Column("update_time", FieldFill.INSERT_UPDATE));
+                            .entityBuilder().fileOverride().enableLombok().addTableFills(new Column("create_time", FieldFill.INSERT));
                     builder.addInclude(tableName) // 设置需要生成的表名
                             .addTablePrefix("t_", "sys_"); // 设置过滤表前缀
                 })
