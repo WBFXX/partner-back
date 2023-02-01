@@ -1,23 +1,25 @@
 package com.partner.boot.service.impl;
 
-import cn.hutool.core.date.DateUnit;
-import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
-import com.partner.boot.common.Constants;
+import com.partner.boot.controller.domain.UserRequest;
 import com.partner.boot.entity.User;
 import com.partner.boot.exception.ServiceException;
 import com.partner.boot.mapper.UserMapper;
 import com.partner.boot.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import lombok.SneakyThrows;
-import net.bytebuddy.utility.RandomString;
+import com.partner.boot.utils.EmailUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.rmi.ServerException;
-import java.util.Date;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -29,14 +31,21 @@ import java.util.Date;
  * @since 2022-12-30
  */
 @Service
+@Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
+    private static final Map<String, Long> CODE_MAP = new ConcurrentHashMap<>();
+    private static final long TIME_IN_MS5 = 5 * 60 * 1000;//表示5分钟毫秒数
+
+    @Autowired
+    EmailUtils emailUtils;
 
 
     @Override
-    public User login(User user) {
+    public User login(UserRequest user) {
         User dbUser = null;
         try {
-            dbUser = getOne(new UpdateWrapper<User>().eq("username", user.getUsername()));
+            //校验邮箱
+            dbUser = getOne(new UpdateWrapper<User>().eq("username", user.getUsername()).or().eq("email", user.getUsername()));
         } catch (Exception e) {
             throw new RuntimeException("数据库异常");
         }
@@ -50,19 +59,88 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         return dbUser;
     }
 
-    @Override
-    public User register(User user) {
 
+    @Override
+    public User register(UserRequest user) {
+        //校验邮箱
+        validateEmail(user.getEmailCode());
         try {
             //存储用户信息
-            return saveUser(user);
+            User saveUser = new User();
+
+            BeanUtils.copyProperties(user,saveUser);//把请求数据的属性copy给存储数据库的属性
+
+            return saveUser(saveUser);
         } catch (Exception e) {
-            throw new RuntimeException("数据库异常");
+            throw new RuntimeException("数据库异常",e);
         }
     }
 
+    @Override
+    public void spendEmail(String email, String type) {
+        String code = RandomUtil.randomNumbers(6);
+        log.info("本次发送的验证码是:{}", code);
+        String context = "<b>尊敬的用户：</b><br><br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;您好，" +
+                "Partner研友网提醒您本次的验证码是：<b>{}</b>，" +
+                "有效期5分钟。<br><br><br><b>Partner交友网</b>";
+        String html = StrUtil.format(context, code);
+        //校验邮箱是否注册
+        User user = getOne(new QueryWrapper<User>().eq("email", email));
+        if ("REGISTER".equals(type) ) {//无需权限验证即可发送邮箱验证
+            if (user != null) {
+                throw new ServiceException("邮箱已注册");
+            }
+        }
+        //忘记密码
+        ThreadUtil.execAsync(() -> {//多线程异步请求，不管成功还是失败都会继续执行。可以防止网络阻塞
+            emailUtils.sendHtml("【partner研友网】验证提醒", html, email);
+        });
+        CODE_MAP.put(code, System.currentTimeMillis());
 
-    private User saveUser(User user){
+    }
+
+
+    @Override
+    public String passwordReset(UserRequest userRequest) {
+        String email = userRequest.getEmail();
+        User dbUser = getOne(new UpdateWrapper<User>().eq("email", email));
+        if (dbUser == null) {
+            throw new ServiceException("未找到用户");
+        }
+        //校验邮箱
+
+            validateEmail(userRequest.getEmailCode());
+            String newPass = "123";
+            dbUser.setPassword(newPass);
+        try{
+            updateById(dbUser);//设置到数据库
+        }catch (Exception e){
+            throw new RuntimeException("注册失败",e);
+        }
+        return newPass;
+    }
+
+    /**
+     * 校验邮箱
+     * @param emailCode
+     */
+    private void validateEmail(String emailCode){
+        //校验邮箱
+        Long timestamp = CODE_MAP.get(emailCode);
+        if (timestamp == null) {
+            throw new ServiceException("请先验证邮箱");
+        }
+
+        //timestamp(发送验证码时间)+5分钟＞当前时间
+        if (timestamp + TIME_IN_MS5 < System.currentTimeMillis()) {
+            //说明验证码过期
+            throw new ServiceException("验证码过期，请重新发送！");
+        }
+        CODE_MAP.remove(emailCode);//清除缓存
+
+    }
+
+    private User saveUser(User user) {
         User dbUser = getOne(new UpdateWrapper<User>().eq("username", user.getUsername()));
         if (dbUser != null) {
             throw new ServiceException("用户已存在");
@@ -78,10 +156,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
         //设置唯一标识
         user.setUid(IdUtil.fastSimpleUUID());
-
-        boolean saveSuccess = save(user);
-        if (!saveSuccess) {
-            throw new RuntimeException("注册失败");
+        try{
+            save(user);
+        }catch (Exception e){
+            throw new RuntimeException("注册失败",e);
         }
         return user;
     }

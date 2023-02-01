@@ -1,9 +1,8 @@
 package com.partner.boot.service;
 
+import com.partner.boot.controller.domain.UserRequest;
 import com.partner.boot.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
-
-import java.rmi.ServerException;
 
 /**
  * <p>
@@ -15,7 +14,13 @@ import java.rmi.ServerException;
  */
 public interface IUserService extends IService<User> {
 
-    User login(User user) ;
+    User login(UserRequest user) ;
 
-    User register(User user);
+
+    User register(UserRequest user);
+
+
+    void spendEmail(String email, String type);
+
+    String passwordReset(UserRequest userRequest);
 }

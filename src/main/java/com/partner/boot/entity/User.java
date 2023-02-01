@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.annotation.*;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.Date;
 
 import cn.hutool.core.annotation.Alias;
 import io.swagger.annotations.ApiModel;
@@ -29,6 +28,8 @@ import lombok.Setter;
 public class User implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    //serialVersionUID作用：
+    //序列化时为了保持版本的兼容性，即在版本升级时反序列化仍保持对象的唯一性。
 
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
@@ -47,6 +48,11 @@ public class User implements Serializable {
     @ApiModelProperty("昵称")
     @Alias("昵称")
     private String name;
+
+    // 邮箱
+    @ApiModelProperty("邮箱")
+    @Alias("邮箱")
+    private String email;
 
     // 唯一标识
     @ApiModelProperty("唯一标识")

@@ -1,22 +1,35 @@
 server:
   port: 9090
-
 spring:
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/partner?serverTimezone=GMT%2b8
     username: root
     password: 123456
-    hikari:
+    hikari: #数据库优化
       minimum-idle: 10
-      connection-test-query: SELECT 1
-  # swagger
+      connection-test-query: SELECT 1 #保证数据库正常响应
+
+   # swagger
   mvc:
-    pathmatch:
-      matching-strategy: ant_path_matcher
-    servlet:
-      load-on-startup: 1  # 启动的时候初始化DispatcherServlet
-  mybatis-plus:
-    mapper-locations: classpath:mapper/*.xml #生成的xml将会放到mapper文件夹里
-    configuration:
-      log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+        pathmatch:
+          matching-strategy: ant_path_matcher
+        servlet:
+          load-on-startup: 1  # 启动的时候初始化DispatcherServlet,-1代表不初始化
+  mail:
+    # 配置 SMTP 服务器地址
+    host: smtp.qq.com
+    # 发送者邮箱
+    username: a1157712386@qq.com
+    # 配置密码，注意不是真正的密码，而是申请到的授权码
+    password: jchjrbnzggrodjdj
+    # 端口号465或587
+    port: 587
+    # 默认的邮件编码为UTF-8
+    default-encoding: UTF-8
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
