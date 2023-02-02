@@ -23,4 +23,6 @@ public interface IUserService extends IService<User> {
     void spendEmail(String email, String type);
 
     String passwordReset(UserRequest userRequest);
+
+
 }

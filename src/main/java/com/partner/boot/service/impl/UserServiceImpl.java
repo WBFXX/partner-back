@@ -62,19 +62,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     public User register(UserRequest user) {
-        //校验邮箱
-        validateEmail(user.getEmailCode());
+        // 校验邮箱
+        validateEmail(user.getEmail(), user.getEmailCode());
         try {
-            //存储用户信息
+
             User saveUser = new User();
-
-            BeanUtils.copyProperties(user,saveUser);//把请求数据的属性copy给存储数据库的属性
-
+            BeanUtils.copyProperties(user, saveUser);   // 把请求数据的属性copy给存储数据库的属性
+            // 存储用户信息
             return saveUser(saveUser);
         } catch (Exception e) {
-            throw new RuntimeException("数据库异常",e);
+            throw new RuntimeException("数据库异常", e);
         }
     }
+
 
     @Override
     public void spendEmail(String email, String type) {
@@ -95,11 +95,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         ThreadUtil.execAsync(() -> {//多线程异步请求，不管成功还是失败都会继续执行。可以防止网络阻塞
             emailUtils.sendHtml("【partner研友网】验证提醒", html, email);
         });
-        CODE_MAP.put(code, System.currentTimeMillis());
-
+        CODE_MAP.put(email + code, System.currentTimeMillis());
     }
 
-
+    /**
+     * 重置密码
+     * @param userRequest
+     * @return
+     */
     @Override
     public String passwordReset(UserRequest userRequest) {
         String email = userRequest.getEmail();
@@ -108,8 +111,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             throw new ServiceException("未找到用户");
         }
         //校验邮箱
-
-            validateEmail(userRequest.getEmailCode());
+            validateEmail(userRequest.getEmail(), userRequest.getEmailCode());
             String newPass = "123";
             dbUser.setPassword(newPass);
         try{
@@ -124,23 +126,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
      * 校验邮箱
      * @param emailCode
      */
-    private void validateEmail(String emailCode){
+    private void validateEmail(String email, String emailCode){
         //校验邮箱
-        Long timestamp = CODE_MAP.get(emailCode);
+        String key = email + emailCode;
+        Long timestamp = CODE_MAP.get(key);
         if (timestamp == null) {
             throw new ServiceException("请先验证邮箱");
         }
-
         //timestamp(发送验证码时间)+5分钟＞当前时间
         if (timestamp + TIME_IN_MS5 < System.currentTimeMillis()) {
             //说明验证码过期
             throw new ServiceException("验证码过期，请重新发送！");
         }
-        CODE_MAP.remove(emailCode);//清除缓存
-
+        CODE_MAP.remove(key);     //清除缓存
     }
 
-    private User saveUser(User user) {
+    public User saveUser(User user) {
         User dbUser = getOne(new UpdateWrapper<User>().eq("username", user.getUsername()));
         if (dbUser != null) {
             throw new ServiceException("用户已存在");
