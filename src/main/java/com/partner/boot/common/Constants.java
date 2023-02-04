@@ -3,4 +3,5 @@ package com.partner.boot.common;
 public interface Constants {
     String USER_NAME_PREFIX = "partner_";
     String DATE_RULER_YYYYMMDD = "yyyyMMdd";
+    String Email_CODE = "email.code";
 }

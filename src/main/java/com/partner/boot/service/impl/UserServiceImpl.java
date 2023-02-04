@@ -6,6 +6,8 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.partner.boot.common.Constants;
+import com.partner.boot.common.enums.EmailCodeEnum;
 import com.partner.boot.controller.domain.UserRequest;
 import com.partner.boot.entity.User;
 import com.partner.boot.exception.ServiceException;
@@ -13,13 +15,18 @@ import com.partner.boot.mapper.UserMapper;
 import com.partner.boot.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.partner.boot.utils.EmailUtils;
+import com.partner.boot.utils.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -33,7 +40,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
-    private static final Map<String, Long> CODE_MAP = new ConcurrentHashMap<>();
+
+
+//    StringRedisTemplate stringRedisTemplate;//官方提供stringRedisTemplate专门用来做redis字符串存储的
+    //key是code， value是时间戳
+//    private static final Map<String, Long> CODE_MAP = new ConcurrentHashMap<>();
     private static final long TIME_IN_MS5 = 5 * 60 * 1000;//表示5分钟毫秒数
 
     @Autowired
@@ -63,7 +74,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     @Override
     public User register(UserRequest user) {
         // 校验邮箱
-        validateEmail(user.getEmail(), user.getEmailCode());
+        String key = Constants.Email_CODE + EmailCodeEnum.REGISTER.getValue() + user.getEmail();
+        validateEmail(key, user.getEmailCode());
         try {
 
             User saveUser = new User();
@@ -78,7 +90,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     public void spendEmail(String email, String type) {
-        String code = RandomUtil.randomNumbers(6);
+        String emailPrefix = EmailCodeEnum.getValue(type);
+        if (StrUtil.isBlank(emailPrefix)) {
+            throw new ServiceException("不支持的邮箱验证类型");
+        }
+        //设置redis的key
+        String key = Constants.Email_CODE + emailPrefix + email;
+        Long expireTime = RedisUtils.getExpireTime(key);
+
+        //4 分钟
+        if (expireTime != null && expireTime > 4 * 60 ) {
+            throw new ServiceException("发送邮箱验证过于频繁");
+        }
+
+        Integer code = Integer.valueOf(RandomUtil.randomNumbers(6));
         log.info("本次发送的验证码是:{}", code);
         String context = "<b>尊敬的用户：</b><br><br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;您好，" +
                 "Partner研友网提醒您本次的验证码是：<b>{}</b>，" +
@@ -95,7 +120,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         ThreadUtil.execAsync(() -> {//多线程异步请求，不管成功还是失败都会继续执行。可以防止网络阻塞
             emailUtils.sendHtml("【partner研友网】验证提醒", html, email);
         });
-        CODE_MAP.put(email + code, System.currentTimeMillis());
+       // CODE_MAP.put(email + code, System.currentTimeMillis());
+
+
+        //设置redis缓存
+        RedisUtils.setCacheObject(key,code,TIME_IN_MS5, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -111,7 +140,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             throw new ServiceException("未找到用户");
         }
         //校验邮箱
-            validateEmail(userRequest.getEmail(), userRequest.getEmailCode());
+        String key = Constants.Email_CODE + EmailCodeEnum.RESET_PASSWORD.getValue() + email;
+
+        validateEmail(key, userRequest.getEmailCode());
             String newPass = "123";
             dbUser.setPassword(newPass);
         try{
@@ -126,19 +157,29 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
      * 校验邮箱
      * @param emailCode
      */
-    private void validateEmail(String email, String emailCode){
+    private void validateEmail(String emailKey, String emailCode){
         //校验邮箱
-        String key = email + emailCode;
-        Long timestamp = CODE_MAP.get(key);
-        if (timestamp == null) {
-            throw new ServiceException("请先验证邮箱");
+//        String key = email + emailCode;
+        Integer code = RedisUtils.getCacheObject(emailKey);
+        if (code == null) {
+            throw new ServiceException("验证码失效");
         }
-        //timestamp(发送验证码时间)+5分钟＞当前时间
-        if (timestamp + TIME_IN_MS5 < System.currentTimeMillis()) {
+        if (!emailCode.equals(code.toString())) {
             //说明验证码过期
             throw new ServiceException("验证码过期，请重新发送！");
         }
-        CODE_MAP.remove(key);     //清除缓存
+//        Long timestamp = CODE_MAP.get(key);
+//        if (timestamp == null) {
+//            throw new ServiceException("请先验证邮箱");
+//        }
+//        //timestamp(发送验证码时间)+5分钟＞当前时间
+//        if (timestamp + TIME_IN_MS5 < System.currentTimeMillis()) {
+//            //说明验证码过期
+//            throw new ServiceException("验证码过期，请重新发送！");
+//        }
+//        CODE_MAP.remove(key);
+        //  清除缓存
+        RedisUtils.deleteObject(emailKey);
     }
 
     public User saveUser(User user) {
