@@ -1,5 +1,7 @@
 package com.partner.boot.utils;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.connection.RedisConnectionCommands;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
@@ -8,7 +10,8 @@ import javax.annotation.PostConstruct;
 import java.util.concurrent.TimeUnit;
 
 @Component
-@SuppressWarnings(value = {"unchecked", "rawtypes"})
+@Slf4j
+@SuppressWarnings(value = {"unchecked"})
 public class RedisUtils {
     private static RedisTemplate<String, Object> staticRedisTemplate;
 
@@ -72,6 +75,14 @@ public class RedisUtils {
      */
     public static Long getExpireTime(final String key){
         return staticRedisTemplate.getExpire(key);
+    }
+
+    /**
+     * 发送ping命令给redis，redis会返回pong
+     */
+    public static void ping() {
+        String res = staticRedisTemplate.execute(RedisConnectionCommands::ping);
+        log.info("Redis ping: {}",res);
     }
 
 

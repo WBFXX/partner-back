@@ -1,6 +1,7 @@
 package com.partner.boot.controller;
 
 import com.partner.boot.common.Result;
+import com.partner.boot.common.enums.LoginDTO;
 import com.partner.boot.controller.domain.UserRequest;
 import com.partner.boot.entity.User;
 import com.partner.boot.service.IUserService;
@@ -37,15 +38,15 @@ public class WebController
     @PostMapping("/login")
     public Result login(@RequestBody UserRequest user){
         long startTime = System.currentTimeMillis();
-        User res = userService.login(user);
+        LoginDTO res = userService.login(user);
         log.info("登录花费时间 {}ms",System.currentTimeMillis()-startTime);
         return Result.success(res);
     }
     @ApiOperation(value = "用户注册接口")
     @PostMapping("/register")
     public Result register(@RequestBody UserRequest user) {
-        User res = userService.register(user);
-        return Result.success(res);
+        userService.register(user);
+        return Result.success();
     }
 
     @ApiOperation(value = "邮箱验证接口")

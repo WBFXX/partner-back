@@ -5,6 +5,7 @@ import cn.hutool.http.HttpUtil;
 import com.partner.boot.entity.User;
 import com.partner.boot.mapper.UserMapper;
 import com.partner.boot.service.IUserService;
+import com.partner.boot.utils.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
@@ -24,6 +25,7 @@ public class InitRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) throws Exception {
         try {
+            RedisUtils.ping(); //redis数据探测，初始化redis链接
             //帮我在项目启动的时候查一次数据库，防止数据库的懒加载
             userMapper.select1();
             log.info("数据库连接查询成功，启动项目");
@@ -34,6 +36,7 @@ public class InitRunner implements ApplicationRunner {
                         log.info("启动项目tomcat连接查询成功");
                     }
             );
+
         } catch (Exception e) {
             log.warn("启动优化失败", e);
         }
