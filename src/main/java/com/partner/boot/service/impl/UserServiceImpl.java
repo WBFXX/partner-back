@@ -152,7 +152,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         validateEmail(key, userRequest.getEmailCode());
             String newPass = "123";
-            dbUser.setPassword(newPass);
+        //加密新密码
+        dbUser.setPassword(SaSecureUtil.aesEncrypt(Constants.PASSWORD_KEY,newPass));
+//            dbUser.setPassword(newPass);
         try{
             updateById(dbUser);//设置到数据库
         }catch (Exception e){
