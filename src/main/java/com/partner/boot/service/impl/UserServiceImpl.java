@@ -1,5 +1,6 @@
 package com.partner.boot.service.impl;
 
+import cn.dev33.satoken.secure.BCrypt;
 import cn.dev33.satoken.secure.SaSecureUtil;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.thread.ThreadUtil;
@@ -40,7 +41,7 @@ import java.util.concurrent.TimeUnit;
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
 
 
-//    StringRedisTemplate stringRedisTemplate;//官方提供stringRedisTemplate专门用来做redis字符串存储的
+    //    StringRedisTemplate stringRedisTemplate;//官方提供stringRedisTemplate专门用来做redis字符串存储的
     //key是code， value是时间戳
 //    private static final Map<String, Long> CODE_MAP = new ConcurrentHashMap<>();
     private static final long TIME_IN_MS5 = 5 * 60 * 1000;//表示5分钟毫秒数
@@ -62,13 +63,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (dbUser == null) {
             throw new ServiceException("用户名错误");
         }
-        String securePass = SaSecureUtil.aesEncrypt(Constants.PASSWORD_KEY, user.getPassword());
-        if (!securePass.equals(dbUser.getPassword())) {
+//        String securePass = SaSecureUtil.aesEncrypt(Constants.PASSWORD_KEY, user.getPassword());
+//        if (!securePass.equals(dbUser.getPassword())) {
+//            throw new ServiceException("用户名或密码错误");
+//        }
+        if (!BCrypt.checkpw(user.getPassword(), dbUser.getPassword())) {
             throw new ServiceException("用户名或密码错误");
         }
         //登录
         StpUtil.login(dbUser.getUid());
-        StpUtil.getSession().set(Constants.LOGIN_USER_KEY,dbUser);
+        StpUtil.getSession().set(Constants.LOGIN_USER_KEY, dbUser);
         String tokenValue = StpUtil.getTokenInfo().getTokenValue();
 //        LoginDTO loginDTO = new LoginDTO(dbUser, tokenValue);
         return LoginDTO.builder().user(dbUser).token(tokenValue).build();
@@ -103,7 +107,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         Long expireTime = RedisUtils.getExpireTime(key);
 
         //4 分钟
-        if (expireTime != null && expireTime > 4 * 60 ) {
+        if (expireTime != null && expireTime > 4 * 60) {
             throw new ServiceException("发送邮箱验证过于频繁");
         }
 
@@ -119,7 +123,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             if (user != null) {
                 throw new ServiceException("邮箱已注册");
             }
-        }else if (EmailCodeEnum.RESET_PASSWORD.equals(EmailCodeEnum.getEnum(type))) {
+        } else if (EmailCodeEnum.RESET_PASSWORD.equals(EmailCodeEnum.getEnum(type))) {
             if (user == null) {
                 throw new ServiceException("未找到用户");
             }
@@ -128,15 +132,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         ThreadUtil.execAsync(() -> {//多线程异步请求，不管成功还是失败都会继续执行。可以防止网络阻塞
             emailUtils.sendHtml("【partner研友网】验证提醒", html, email);
         });
-       // CODE_MAP.put(email + code, System.currentTimeMillis());
+        // CODE_MAP.put(email + code, System.currentTimeMillis());
 
 
         //设置redis缓存
-        RedisUtils.setCacheObject(key,code,TIME_IN_MS5, TimeUnit.MILLISECONDS);
+        RedisUtils.setCacheObject(key, code, TIME_IN_MS5, TimeUnit.MILLISECONDS);
     }
 
     /**
      * 重置密码
+     *
      * @param userRequest
      * @return
      */
@@ -151,23 +156,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         String key = Constants.Email_CODE + EmailCodeEnum.RESET_PASSWORD.getValue() + email;
 
         validateEmail(key, userRequest.getEmailCode());
-            String newPass = "123";
+        String newPass = "123";
         //加密新密码
-        dbUser.setPassword(SaSecureUtil.aesEncrypt(Constants.PASSWORD_KEY,newPass));
+//        dbUser.setPassword(SaSecureUtil.aesEncrypt(Constants.PASSWORD_KEY,newPass));
+        dbUser.setPassword(BCrypt.hashpw(newPass));//BCrypt加密
+
 //            dbUser.setPassword(newPass);
-        try{
+        try {
             updateById(dbUser);//设置到数据库
-        }catch (Exception e){
-            throw new RuntimeException("注册失败",e);
+        } catch (Exception e) {
+            throw new RuntimeException("注册失败", e);
         }
         return newPass;
     }
 
     /**
      * 校验邮箱
+     *
      * @param emailCode
      */
-    private void validateEmail(String emailKey, String emailCode){
+    private void validateEmail(String emailKey, String emailCode) {
         //校验邮箱
 //        String key = email + emailCode;
         Integer code = RedisUtils.getCacheObject(emailKey);
@@ -207,13 +215,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             user.setPassword("123");//设置密码
         }
         //加密用户密码
-        user.setPassword(SaSecureUtil.aesEncrypt(Constants.PASSWORD_KEY,user.getPassword()));
+//        user.setPassword(SaSecureUtil.aesEncrypt(Constants.PASSWORD_KEY,user.getPassword()));
+        user.setPassword(BCrypt.hashpw(user.getPassword()));//BCrypt加密
         //设置唯一标识
         user.setUid(IdUtil.fastSimpleUUID());
-        try{
+        try {
             save(user);
-        }catch (Exception e){
-            throw new RuntimeException("注册失败",e);
+        } catch (Exception e) {
+            throw new RuntimeException("注册失败", e);
         }
         return user;
     }

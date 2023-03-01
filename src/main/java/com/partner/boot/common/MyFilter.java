@@ -1,12 +1,18 @@
 package com.partner.boot.common;
 
 import cn.hutool.http.HttpRequest;
+import cn.hutool.json.JSON;
+import cn.hutool.json.JSONUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -26,6 +32,8 @@ public class MyFilter implements Filter {
     //桶
     public static final AtomicInteger bear = new AtomicInteger(0);
 
+    public static final int door = 200;
+
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
         Filter.super.init(filterConfig);
@@ -40,7 +48,12 @@ public class MyFilter implements Filter {
         //发生了请求
         long now = System.currentTimeMillis();
             if (now - startTime <= windowTime) {
-                if ( count > 2) {//如果大于2，关门放狗
+                if ( count > door) {//如果大于2，关门放狗
+                    HttpServletResponse response = (HttpServletResponse)servletResponse;
+                    response.setStatus(HttpStatus.OK.value());
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    response.setCharacterEncoding(StandardCharsets.UTF_8.toString());
+                    response.getWriter().print(JSONUtil.toJsonStr(Result.error("402","接口请求太频繁")));
                     return;
                 }
             }else {
