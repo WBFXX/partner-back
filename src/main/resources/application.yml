@@ -72,3 +72,8 @@ sa-token:
   token-prefix: Bearer
   # jwt秘钥
   jwt-secret-key: asdasdasifhueuiwyurfewbfjsdafjk
+file:
+  upload:
+    path: D:\往期作业\考研交友平台\partner-back
+  download:
+    ip: localhost
