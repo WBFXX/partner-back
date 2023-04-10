@@ -42,13 +42,13 @@ public class UserController {
 
     @Resource
     private IUserService userService;
-
+    //新增
     @PostMapping
     public Result save(@RequestBody User user) {
         userService.save(user);
         return Result.success();
     }
-
+    //更新
     @PutMapping
     public Result update(@RequestBody User user) {
         userService.updateById(user);

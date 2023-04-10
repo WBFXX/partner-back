@@ -63,7 +63,10 @@ public class User implements Serializable {
     @ApiModelProperty("逻辑删除")
     @TableLogic(value = "0",delval = "id")
     private Integer deleted;
-
+    // 头像
+    @ApiModelProperty("头像")
+    @Alias("头像")
+    private String avatar;
 
     @ApiModelProperty("创建时间")
     @Alias("创建时间")

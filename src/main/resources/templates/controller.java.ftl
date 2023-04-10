@@ -52,16 +52,17 @@ import ${package.Entity}.${entity};
     @Resource
     private ${table.serviceName} ${table.entityPath}Service;
 
-    // 新增或者更新
+    // 新增
     @PostMapping
     public Result save(@RequestBody ${entity} ${table.entityPath}) {
-    if (${table.entityPath}.getId() == null) {
-
-    } else {
-
+            ${table.entityPath}Service.save(${table.entityPath});
+            return Result.success();
     }
-    ${table.entityPath}Service.saveOrUpdate(${table.entityPath});
-    return Result.success();
+    //更新
+    @PutMapping
+    public Result update(@RequestBody ${entity} ${table.entityPath}) {
+            ${table.entityPath}Service.updateById(${table.entityPath});
+            return Result.success();
     }
 
     @DeleteMapping("/{id}")

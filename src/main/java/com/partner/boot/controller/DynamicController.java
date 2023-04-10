@@ -34,18 +34,19 @@ import com.partner.boot.entity.Dynamic;
     @Resource
     private IDynamicService dynamicService;
 
-    // 新增或者更新
+    // 新增
     @PostMapping
     public Result save(@RequestBody Dynamic dynamic) {
-    if (dynamic.getId() == null) {
-
-    } else {
-
-    }
-    dynamicService.saveOrUpdate(dynamic);
+    dynamicService.save(dynamic);
     return Result.success();
     }
-
+    //更新
+    @PutMapping
+    public Result update(@RequestBody Dynamic dynamic) {
+    dynamicService.updateById(dynamic);
+    return Result.success();
+    }
+    //删除
     @DeleteMapping("/{id}")
     public Result delete(@PathVariable Integer id) {
     dynamicService.removeById(id);
