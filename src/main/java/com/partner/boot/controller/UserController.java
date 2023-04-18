@@ -1,6 +1,8 @@
 package com.partner.boot.controller;
 
+
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelReader;
 import cn.hutool.poi.excel.ExcelWriter;
@@ -11,7 +13,6 @@ import java.net.URLEncoder;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.partner.boot.common.Constants;
-import io.netty.util.Constant;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,7 +46,7 @@ public class UserController {
     //新增
     @PostMapping
     public Result save(@RequestBody User user) {
-        userService.save(user);
+        userService.saveUser(user);
         return Result.success();
     }
     //更新
@@ -98,10 +99,12 @@ public class UserController {
 
     @GetMapping("/page")
     public Result findPage(@RequestParam(defaultValue = "") String name,
+                           @RequestParam(defaultValue = "") String address,
                            @RequestParam Integer pageNum,
                            @RequestParam Integer pageSize) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<User>().orderByDesc("id");
-        queryWrapper.like(!"".equals(name), "name", name);
+        queryWrapper.like(StrUtil.isNotBlank(name), "name", name);
+        queryWrapper.like(StrUtil.isNotBlank(address), "address", address);
         return Result.success(userService.page(new Page<>(pageNum, pageSize), queryWrapper));
     }
 

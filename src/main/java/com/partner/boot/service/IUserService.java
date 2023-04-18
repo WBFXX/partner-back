@@ -26,4 +26,7 @@ public interface IUserService extends IService<User> {
     String passwordReset(UserRequest userRequest);
 
 
+    void logout(String uid);
+
+    User saveUser(User user);
 }

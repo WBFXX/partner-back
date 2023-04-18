@@ -84,10 +84,10 @@ public class FileController {
                              @RequestParam(required = false)String token,
                              HttpServletResponse response) throws IOException {
         //token校验
-        List<String> tokenList = StpUtil.getTokenValueListByLoginId(loginId);
-        if (CollUtil.isEmpty(tokenList) || !tokenList.contains(token)) {
-            return;
-        }
+//        List<String> tokenList = StpUtil.getTokenValueListByLoginId(loginId);
+//        if (CollUtil.isEmpty(tokenList) || !tokenList.contains(token)) {
+//            return;
+//        }
 
         String fileUploadPath = getFileUploadPath(fileFullName);//通过文件名拿到文件路径
         byte[] bytes = FileUtil.readBytes(fileUploadPath);//将文件路径存到byte数组

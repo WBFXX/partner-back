@@ -50,6 +50,11 @@ public class User implements Serializable {
     @Alias("昵称")
     private String name;
 
+    // 地址
+    @ApiModelProperty("地址")
+    @Alias("地址")
+    private String address;
+
     // 邮箱
     @ApiModelProperty("邮箱")
     @Alias("邮箱")
