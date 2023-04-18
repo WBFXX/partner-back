@@ -219,7 +219,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (StrUtil.isBlank(user.getName())) {
 //               String name = Constants.USER_NAME_PREFIX + DateUtil.format(new Date(),Constants.DATE_RULER_YYYYMMDD)
 //                       + RandomUtil.randomString(4); //随机昵称，看common里的Constants
-            user.setName("李白");
+            user.setName("系统用户" + RandomUtil.randomString(6));
         }
         if (StrUtil.isBlank(user.getPassword())) {
             user.setPassword("123");//设置密码

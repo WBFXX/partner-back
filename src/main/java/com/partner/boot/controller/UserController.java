@@ -141,12 +141,17 @@ public class UserController {
      */
     @PostMapping("/import")
     public Result imp(MultipartFile file) throws Exception {
+
+        //文件上传 file转为流
         InputStream inputStream = file.getInputStream();
         ExcelReader reader = ExcelUtil.getReader(inputStream);
         // 通过 javabean的方式读取Excel内的对象，但是要求表头必须是英文，跟javabean的属性要对应起来
         List<User> list = reader.readAll(User.class);
 
-        userService.saveBatch(list);
+        //userService.saveBatch(list);
+        for (User user : list){
+            userService.saveUser(user);
+        }
         return Result.success();
     }
 

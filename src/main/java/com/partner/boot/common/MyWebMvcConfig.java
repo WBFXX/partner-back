@@ -22,7 +22,7 @@ public class MyWebMvcConfig extends WebMvcConfigurationSupport {
                 //这里配置要拦截的路径
                 .addPathPatterns("/**")
                 //这里配置不要拦截的路径
-                .excludePathPatterns("/", "/login", "/register", "/email", "/password/reset", "/file/download/**")
+                .excludePathPatterns("/", "/login", "/register", "/email", "/password/reset", "/file/download/**","/**/export","/**/import")
                 //这里配置不拦截上方的url
                 .excludePathPatterns("/swagger**/**", "/webjars/**", "/v3/**", "/doc.html", "/favicon.ico");  // 排除 swagger拦截
     }
