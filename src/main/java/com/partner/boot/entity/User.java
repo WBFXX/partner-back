@@ -87,4 +87,8 @@ public class User implements Serializable {
     @JsonDeserialize(using = LDTConfig.CmzLdtDeSerializer.class)
     @JsonSerialize(using = LDTConfig.CmzLdtSerializer.class)
     private LocalDateTime updateTime;
+
+    @ApiModelProperty("角色")
+    @Alias("角色")
+    private String  role;
 }

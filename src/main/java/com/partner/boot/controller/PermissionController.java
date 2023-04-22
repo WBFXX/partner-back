@@ -14,68 +14,73 @@ import java.util.List;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.partner.boot.common.Result;
 import org.springframework.web.multipart.MultipartFile;
-import com.partner.boot.service.IDynamicService;
-import com.partner.boot.entity.Dynamic;
+import com.partner.boot.service.IPermissionService;
+import com.partner.boot.entity.Permission;
 
     import org.springframework.web.bind.annotation.RestController;
 
 /**
 * <p>
-    * 动态 前端控制器
+    *  前端控制器
     * </p>
 *
 * @author 现计科1901武泊帆
 * @since 2023-04-19
 */
     @RestController
-@RequestMapping("/dynamic")
-        public class DynamicController {
+@RequestMapping("/permission")
+        public class PermissionController {
 
     @Resource
-    private IDynamicService dynamicService;
+    private IPermissionService permissionService;
 
     // 新增
     @PostMapping
-    public Result save(@RequestBody Dynamic dynamic) {
-            dynamicService.save(dynamic);
+    public Result save(@RequestBody Permission permission) {
+            permissionService.save(permission);
             return Result.success();
     }
     //更新
     @PutMapping
-    public Result update(@RequestBody Dynamic dynamic) {
-            dynamicService.updateById(dynamic);
+    public Result update(@RequestBody Permission permission) {
+            permissionService.updateById(permission);
             return Result.success();
     }
 
     @DeleteMapping("/{id}")
     public Result delete(@PathVariable Integer id) {
-    dynamicService.removeById(id);
+    permissionService.removeById(id);
     return Result.success();
     }
 
     @PostMapping("/del/batch")
     public Result deleteBatch(@RequestBody List<Integer> ids) {
-    dynamicService.removeByIds(ids);
+    permissionService.removeByIds(ids);
     return Result.success();
     }
 
     @GetMapping
     public Result findAll() {
-    return Result.success(dynamicService.list());
+    return Result.success(permissionService.list());
+    }
+
+    @GetMapping("/tree")
+    public Result tree() {
+    return Result.success(permissionService.tree());
     }
 
     @GetMapping("/{id}")
     public Result findOne(@PathVariable Integer id) {
-    return Result.success(dynamicService.getById(id));
+    return Result.success(permissionService.getById(id));
     }
 
     @GetMapping("/page")
     public Result findPage(@RequestParam(defaultValue = "") String name,
     @RequestParam Integer pageNum,
     @RequestParam Integer pageSize) {
-    QueryWrapper<Dynamic> queryWrapper = new QueryWrapper<Dynamic>().orderByDesc("id");
+    QueryWrapper<Permission> queryWrapper = new QueryWrapper<Permission>().orderByDesc("id");
     queryWrapper.like(!"".equals(name), "name", name);
-    return Result.success(dynamicService.page(new Page<>(pageNum, pageSize), queryWrapper));
+    return Result.success(permissionService.page(new Page<>(pageNum, pageSize), queryWrapper));
     }
 
     /**
@@ -84,7 +89,7 @@ import com.partner.boot.entity.Dynamic;
     @GetMapping("/export")
     public void export(HttpServletResponse response) throws Exception {
     // 从数据库查询出所有的数据
-    List<Dynamic> list = dynamicService.list();
+    List<Permission> list = permissionService.list();
     // 在内存操作，写出到浏览器
     ExcelWriter writer = ExcelUtil.getWriter(true);
 
@@ -93,7 +98,7 @@ import com.partner.boot.entity.Dynamic;
 
     // 设置浏览器响应的格式
     response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8");
-    String fileName = URLEncoder.encode("Dynamic信息表", "UTF-8");
+    String fileName = URLEncoder.encode("Permission信息表", "UTF-8");
     response.setHeader("Content-Disposition", "attachment;filename=" + fileName + ".xlsx");
 
     ServletOutputStream out = response.getOutputStream();
@@ -113,9 +118,9 @@ import com.partner.boot.entity.Dynamic;
     InputStream inputStream = file.getInputStream();
     ExcelReader reader = ExcelUtil.getReader(inputStream);
     // 通过 javabean的方式读取Excel内的对象，但是要求表头必须是英文，跟javabean的属性要对应起来
-    List<Dynamic> list = reader.readAll(Dynamic.class);
+    List<Permission> list = reader.readAll(Permission.class);
 
-    dynamicService.saveBatch(list);
+    permissionService.saveBatch(list);
     return Result.success();
     }
 

@@ -114,8 +114,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         Integer code = Integer.valueOf(RandomUtil.randomNumbers(6));
         log.info("本次发送的验证码是:{}", code);
         String context = "<b>尊敬的用户：</b><br><br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;您好，" +
-                "Partner研友网提醒您本次的验证码是：<b>{}</b>，" +
-                "有效期5分钟。<br><br><br><b>Partner交友网</b>";
+                "考研交流互助平台提醒您本次的验证码是：<b>{}</b>，" +
+                "有效期5分钟。<br><br><br><b>考研交流互助平台</b>";
         String html = StrUtil.format(context, code);
         //校验邮箱是否注册
         User user = getOne(new QueryWrapper<User>().eq("email", email));
@@ -130,7 +130,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
         //忘记密码
         ThreadUtil.execAsync(() -> {//多线程异步请求，不管成功还是失败都会继续执行。可以防止网络阻塞
-            emailUtils.sendHtml("【partner研友网】验证提醒", html, email);
+            emailUtils.sendHtml("【考研交流互助平台】验证提醒", html, email);
         });
         // CODE_MAP.put(email + code, System.currentTimeMillis());
 
