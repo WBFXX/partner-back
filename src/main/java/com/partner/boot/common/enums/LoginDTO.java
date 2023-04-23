@@ -20,4 +20,5 @@ public class LoginDTO implements Serializable {
     private User user;
     private String token;
     private List<Permission> menus;
+    private List<Permission> auths;
 }

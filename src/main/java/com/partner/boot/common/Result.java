@@ -4,13 +4,16 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 /**
  * 接口统一返回包装类
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Result {
+public class Result implements Serializable {
+    private static final long serialVersionUID = 42L;
     private static final String CODE_SUCCESS = "200";
     private static final String CODE_SYS_ERROR = "500";
 

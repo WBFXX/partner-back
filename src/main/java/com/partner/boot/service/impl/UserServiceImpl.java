@@ -13,9 +13,16 @@ import com.partner.boot.common.Constants;
 import com.partner.boot.common.enums.EmailCodeEnum;
 import com.partner.boot.common.enums.LoginDTO;
 import com.partner.boot.controller.domain.UserRequest;
+import com.partner.boot.entity.Permission;
+import com.partner.boot.entity.Role;
+import com.partner.boot.entity.RolePermission;
 import com.partner.boot.entity.User;
 import com.partner.boot.exception.ServiceException;
+import com.partner.boot.mapper.RoleMapper;
+import com.partner.boot.mapper.RolePermissionMapper;
 import com.partner.boot.mapper.UserMapper;
+import com.partner.boot.service.IPermissionService;
+import com.partner.boot.service.IRoleService;
 import com.partner.boot.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.partner.boot.utils.EmailUtils;
@@ -25,7 +32,14 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
+import java.net.Inet4Address;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 /**
@@ -48,7 +62,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Autowired
     EmailUtils emailUtils;
-
+    @Resource
+    RolePermissionMapper rolePermissionMapper;
+    @Autowired
+    IRoleService roleService;
+    @Resource
+    IPermissionService permissionService;
 
     @Override
     public LoginDTO login(UserRequest user) {
@@ -75,9 +94,42 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         StpUtil.getSession().set(Constants.LOGIN_USER_KEY, dbUser);
         String tokenValue = StpUtil.getTokenInfo().getTokenValue();
 //        LoginDTO loginDTO = new LoginDTO(dbUser, tokenValue);
-        return LoginDTO.builder().user(dbUser).token(tokenValue).build();
+
+        // 查询用户的菜单树（2层）
+        String flag = dbUser.getRole();
+        List<Permission> all = getPermissions(flag);  // 水平
+        List<Permission> menus = getTreePermissions(all); // 树
+        // 页面的按钮权限集合
+        List<Permission> auths = all.stream().filter(permission -> permission.getType() == 3).collect(Collectors.toList());
+        return LoginDTO.builder().user(dbUser).token(tokenValue).menus(menus).auths(auths).build();
     }
 
+
+    private List<Permission> getPermissions(String roleFlag) {
+        Role role = roleService.getOne(new QueryWrapper<Role>().eq("flag", roleFlag));
+        List<RolePermission> rolePermissions = rolePermissionMapper.selectList(new QueryWrapper<RolePermission>().eq("role_id", role.getId()));
+        List<Integer> permissionIds = rolePermissions.stream().map(RolePermission::getPermissionId).collect(Collectors.toList());
+        List<Permission> permissionList = permissionService.list();
+        List<Permission> all = new ArrayList<>();  // 水平的菜单树
+        for (Integer permissionId : permissionIds) {
+            permissionList.stream().filter(permission -> permission.getId().equals(permissionId)).findFirst()
+                    .ifPresent(all::add);
+        }
+        return all;
+    }
+
+    // 获取角色对应的菜单树
+    private List<Permission> getTreePermissions(List<Permission> all) {
+        // 菜单树 1级 -> 2级
+        List<Permission> parentList = all.stream().filter(permission -> permission.getType() == 1
+                || (permission.getType() == 2 && permission.getPid() == null)).collect(Collectors.toList());// type==1 是目录  或者  pid = null
+        for (Permission permission : parentList) {
+            Integer pid = permission.getId();
+            List<Permission> level2List = all.stream().filter(permission1 -> pid.equals(permission1.getPid())).collect(Collectors.toList());// 2级菜单
+            permission.setChildren(level2List);
+        }
+        return parentList.stream().sorted(Comparator.comparing(Permission::getOrders)).collect(Collectors.toList());  // 排序
+    }
 
     @Override
     public void register(UserRequest user) {

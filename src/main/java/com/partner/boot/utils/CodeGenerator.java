@@ -28,7 +28,7 @@ import java.util.*;
 @Slf4j
 public class CodeGenerator {
 
-    private static final String TABLE = "sys_permission";
+    private static final String TABLE = "sys_dict";
     private static final String PACKAGE_NAME = "com.partner.boot";
     private static final String AUTHOR = "现计科1901武泊帆";
 
