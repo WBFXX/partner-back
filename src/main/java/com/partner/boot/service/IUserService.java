@@ -2,8 +2,11 @@ package com.partner.boot.service;
 
 import com.partner.boot.common.enums.LoginDTO;
 import com.partner.boot.controller.domain.UserRequest;
+import com.partner.boot.entity.Permission;
 import com.partner.boot.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.util.List;
 
 /**
  * <p>
@@ -29,4 +32,6 @@ public interface IUserService extends IService<User> {
     void logout(String uid);
 
     User saveUser(User user);
+
+    List<Permission> getPermissions(String roleFlag);
 }

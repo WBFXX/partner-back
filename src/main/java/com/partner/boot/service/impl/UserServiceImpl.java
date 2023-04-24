@@ -105,7 +105,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     }
 
 
-    private List<Permission> getPermissions(String roleFlag) {
+    public List<Permission> getPermissions(String roleFlag) {
         Role role = roleService.getOne(new QueryWrapper<Role>().eq("flag", roleFlag));
         List<RolePermission> rolePermissions = rolePermissionMapper.selectList(new QueryWrapper<RolePermission>().eq("role_id", role.getId()));
         List<Integer> permissionIds = rolePermissions.stream().map(RolePermission::getPermissionId).collect(Collectors.toList());

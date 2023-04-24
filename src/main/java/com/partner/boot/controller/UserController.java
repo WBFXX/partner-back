@@ -1,6 +1,7 @@
 package com.partner.boot.controller;
 
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.poi.excel.ExcelUtil;
@@ -45,24 +46,28 @@ public class UserController {
     private IUserService userService;
     //新增
     @PostMapping
+    @SaCheckPermission("user.add")
     public Result save(@RequestBody User user) {
         userService.saveUser(user);
         return Result.success();
     }
     //更新
     @PutMapping
+    @SaCheckPermission("user.update")
     public Result update(@RequestBody User user) {
         userService.updateById(user);
         return Result.success();
     }
 
     @DeleteMapping("/{id}")
+    @SaCheckPermission("user.delete")
     public Result delete(@PathVariable Integer id) {
         userService.removeById(id);
         return Result.success();
     }
 
     @PostMapping("/del/batch")
+    @SaCheckPermission("user.deleteBatch")
     public Result deleteBatch(@RequestBody List<Integer> ids) {
         userService.removeByIds(ids);
         return Result.success();
@@ -79,6 +84,8 @@ public class UserController {
  * // 检验当前会话是否已经登录, 如果未登录，则抛出异常：`NotLoginException`
  * StpUtil.checkLogin();
  */
+    @SaCheckPermission("user.list")
+
     public Result findAll() {
         boolean login = StpUtil.isLogin();
         log.info("登录状态为: {}",login);
@@ -98,6 +105,7 @@ public class UserController {
     }
 
     @GetMapping("/page")
+    @SaCheckPermission("user.list")
     public Result findPage(@RequestParam(defaultValue = "") String name,
                            @RequestParam(defaultValue = "") String address,
                            @RequestParam Integer pageNum,
@@ -112,6 +120,7 @@ public class UserController {
      * 导出接口
      */
     @GetMapping("/export")
+    @SaCheckPermission("user.export")
     public void export(HttpServletResponse response) throws Exception {
         // 从数据库查询出所有的数据
         List<User> list = userService.list();
@@ -140,6 +149,7 @@ public class UserController {
      * @throws Exception
      */
     @PostMapping("/import")
+    @SaCheckPermission("user.import")
     public Result imp(MultipartFile file) throws Exception {
 
         //文件上传 file转为流
