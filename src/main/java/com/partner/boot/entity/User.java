@@ -91,4 +91,8 @@ public class User implements Serializable {
     @ApiModelProperty("角色")
     @Alias("角色")
     private String  role;
+
+    @ApiModelProperty("个性签名")
+    @Alias("个性签名")
+    private String  sign;
 }

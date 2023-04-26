@@ -34,4 +34,6 @@ public interface IUserService extends IService<User> {
     User saveUser(User user);
 
     List<Permission> getPermissions(String roleFlag);
+
+    void passwordChange(UserRequest userRequest);
 }

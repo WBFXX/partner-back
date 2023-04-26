@@ -130,6 +130,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
         return parentList.stream().sorted(Comparator.comparing(Permission::getOrders)).collect(Collectors.toList());  // 排序
     }
+//修改密码
+    public void passwordChange(UserRequest userRequest) {
+        User dbUser = getOne(new UpdateWrapper<User>().eq("uid", userRequest.getUid()));
+        if (dbUser == null) {
+            throw new ServiceException("未找到用户");
+        }
+        boolean checkpw = BCrypt.checkpw(userRequest.getPassword(), dbUser.getPassword());
+        if (!checkpw) {
+            throw new ServiceException("原密码错误");
+        }
+        String newPass = userRequest.getNewPassword();
+        dbUser.setPassword(BCrypt.hashpw(newPass));
+        updateById(dbUser);   // 设置到数据库
+    }
 
     @Override
     public void register(UserRequest user) {

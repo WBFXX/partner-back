@@ -10,5 +10,6 @@ public class UserRequest {
     private String email;
     private String name;
     private String emailCode;
-
+    private String newPassword;
+    private String uid;
 }

@@ -1,5 +1,6 @@
 package com.partner.boot.utils;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.resource.ResourceUtil;
 import cn.hutool.core.util.StrUtil;
@@ -23,161 +24,209 @@ import java.util.*;
 /**
  * 代码生成器
  * v1.0
- * 作者：程序员青戈
+ *
  */
 @Slf4j
 public class CodeGenerator {
 
-    private static final String TABLE = "sys_dict";
-    private static final String PACKAGE_NAME = "com.partner.boot";
-    private static final String AUTHOR = "现计科1901武泊帆";
+    private static final String TABLE = "dynamic";  // 表名
+    private static final String MODULE_NAME = "动态";  // 菜单名称
 
-    public static final String VUE_CODE_PATH = "D:\\往期作业\\考研交友平台\\partner-manager\\src\\views\\";
+    private static final String PACKAGE_NAME = "com.partner.boot";  // java代码的包名
+    private static final String AUTHOR = "计科1901武泊帆";   // 作者
+
+    // D:\毕设\演示\vue3代码生成器演示\boot-vue3-master\vue\src\views
+    private static final String VUE_CODE_PATH = "D:\\往期作业\\考研交友平台\\partner-manager\\src\\views\\";  // vue代码的路径
+
     /*=========================  下面的不用改动  =========================*/
 
     private static final String PROJECT_PATH = System.getProperty("user.dir");
     public static final String MAPPER_XML_PATH = "/src/main/resources/mapper/";
     public static final String JAVA_CODE_PATH = "/src/main/java/";
 
-    public static final String SPACE8 =  "        ";
-    public static final String SPACE4 =  "    ";
-    public static final String SPACE2 =  "  ";
+    private static final String SPACE6 = "      ";
+    private static final String SPACE8 = "        ";
+    private static final String SPACE10 = "          ";
+    private static final String SPACE4 = "    ";
 
-    public static void main(String[] args) {
-
-        generateJava(TABLE);
-
-        generateVue(TABLE);
-
-
+    public static void main(String[] args) throws SQLException {
+        generateJava(TABLE);   // 生成Java后台代码
+        generateVue(TABLE);   // 生成Vue文件
+        generatePermissionSqlData(TABLE); // 生成权限菜单
     }
 
-    private static void generateVue(String tableName){
+    private static void generatePermissionSqlData(String tableName) throws SQLException {
+        // 获取数据库连接的信息
+        DBProp dbProp = getDBProp();
+        // 连接数据库
+        DataSource dataSource = new SimpleDataSource(dbProp.getUrl(), dbProp.getUsername(), dbProp.getPassword());
+        Db db = DbUtil.use(dataSource);
+        String lowerEntity = getLowerEntity(tableName);
 
+        // 先删除菜单sql再插入新的sql
+        db.execute("delete from `sys_permission` where `auth` like '" + lowerEntity + "%' or path like '" + lowerEntity + "%'");
+        db.execute("INSERT INTO `sys_permission` (`name`, `path`, `icon`, `page`, `type`) " +
+                        "VALUES (?, ?, ?, ?, ? )", MODULE_NAME + "管理", lowerEntity, "grid",
+                getEntity(tableName), "2");
+        List<Entity> pages = db.findBy("sys_permission", "path", lowerEntity);
+        Entity entity = pages.get(0);
+        Integer pid = entity.getInt("id");
+        db.execute("INSERT INTO `sys_permission` (`name`, `auth`, `pid`, `type`) " +
+                "VALUES (?, ?, ?, ?)", MODULE_NAME + "查询", lowerEntity + ".list", pid, "3");
+        db.execute("INSERT INTO `sys_permission` (`name`, `auth`, `pid`, `type`) " +
+                "VALUES (?, ?, ?, ?)", MODULE_NAME + "新增", lowerEntity + ".add", pid, "3");
+        db.execute("INSERT INTO `sys_permission` (`name`, `auth`, `pid`, `type`) " +
+                "VALUES (?, ?, ?, ?)", MODULE_NAME + "导入", lowerEntity + ".import", pid, "3");
+        db.execute("INSERT INTO `sys_permission` (`name`, `auth`, `pid`, `type`) " +
+                "VALUES (?, ?, ?, ?)", MODULE_NAME + "导出", lowerEntity + ".export", pid, "3");
+        db.execute("INSERT INTO `sys_permission` (`name`, `auth`, `pid`, `type`) " +
+                "VALUES (?, ?, ?, ?)", "批量删除", lowerEntity + ".deleteBatch", pid, "3");
+        db.execute("INSERT INTO `sys_permission` (`name`, `auth`, `pid`, `type`) " +
+                "VALUES (?, ?, ?, ?)", MODULE_NAME + "编辑", lowerEntity + ".edit", pid, "3");
+        db.execute("INSERT INTO `sys_permission` (`name`, `auth`, `pid`, `type`) " +
+                "VALUES (?, ?, ?, ?)", MODULE_NAME + "删除", lowerEntity + ".delete", pid, "3");
+
+        // 给管理员默认所有的权限
+        List<Entity> adminRole = db.findBy("sys_role", "flag", "ADMIN");
+        if (CollUtil.isNotEmpty(adminRole)) {
+            // 先删除管理员权限
+            db.execute("delete from `sys_role_permission` where `role_id` = " + adminRole.get(0).getInt("id"));
+            List<Entity> permissionAll = db.findAll("sys_permission");
+            // 再添加所有权限给管理员
+            for (Entity per : permissionAll) {
+                db.execute("INSERT INTO `sys_role_permission` (`role_id`, `permission_id`) " +
+                        "VALUES (?, ?)", adminRole.get(0).getInt("id"), per.getInt("id"));
+            }
+        }
+        log.debug("========================== 菜单Sql生成完成！！！==========================");
+    }
+
+    private static void generateVue(String tableName) {
         List<TableColumn> tableColumns = getTableColumns(tableName);
 
-        //读取模板，生成代码
+        // 读取模板，生成代码
         String vueTemplate = ResourceUtil.readUtf8Str("templates/vue.template");
-        //封装模板代码
-        Map<String, String> map  = new HashMap<>();
 
-        map.put("lowerEntity",getlowerEntity(tableName)); //接口前缀
+        // 封装模板的代码
+        Map<String, String> map = new HashMap<>();
+        map.put("lowerEntity", getLowerEntity(tableName));  // 接口前缀
 
         String vueTableBody = getVueTableBody(tableColumns);
-        map.put("tableBody",vueTableBody);
+        map.put("tableBody", vueTableBody);
 
         String vueFormBody = getVueFormBody(tableColumns);
-        map.put("formBody",vueFormBody);
+        map.put("formBody", vueFormBody);
+        map.put("moduleName", MODULE_NAME);
 
-        //生成页面
-        String vuePage = StrUtil.format(vueTemplate, map);//vuePage替换字符串模板后的内容
+
+
+        // 生成页面代码
+        String vuePage = StrUtil.format(vueTemplate, map);  // vuePage是替换字符串模板后的内容
+        // 写文件
+        //  "D:\\知识星球\\partner-manager\\src\\views\\"  是你vue工程文件的目录
         String entity = getEntity(tableName);
-
-        //写文件
-        //D:\往期作业\考研交友平台\partner-manager\src\views\\文件名 是VUE工程文件的目录
-      FileUtil.writeUtf8String(vuePage,VUE_CODE_PATH + entity + ".vue");
-      log.debug("——————————————————"+ entity +".vue文件生成完成 ——————————————————");
+        FileUtil.writeUtf8String(vuePage, VUE_CODE_PATH + entity + ".vue");
+        log.debug("==========================" + entity + ".vue文件生成完成！！！==========================");
     }
 
-    /*
-    表Body
-     */
-    public static String getVueTableBody(List<TableColumn> tablraColumList){
+    private static List<TableColumn> getTableColumns(String tableName) {
+        // 获取数据库连接的信息
+        DBProp dbProp = getDBProp();
+        // 连接数据库
+        DataSource dataSource = new SimpleDataSource("jdbc:mysql://localhost:3306/information_schema", dbProp.getUsername(), dbProp.getPassword());
+        Db db = DbUtil.use(dataSource);
+
+        // 拿到实际要生成代码的数据库的名称
+        String url = dbProp.getUrl();
+        String schema = url.substring(url.indexOf("3306/") + 5, url.indexOf("?"));
+
+        List<TableColumn> tableColumnList = new ArrayList<>();
+        try {
+            List<Entity> columns = db.findAll(Entity.create("COLUMNS").set("TABLE_SCHEMA", schema).set("TABLE_NAME", tableName));
+            //封装结构化的表数据信息
+            for (Entity entity : columns) {
+                String columnName = entity.getStr("COLUMN_NAME");  // 字段名称
+                String dataType = entity.getStr("DATA_TYPE");  // 字段名称
+                String columnComment = entity.getStr("COLUMN_COMMENT");  // 字段名称
+                TableColumn tableColumn = TableColumn.builder().columnName(columnName).dataType(dataType).columnComment(columnComment).build();
+                tableColumnList.add(tableColumn);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return tableColumnList;
+    }
+
+    private static String getVueTableBody(List<TableColumn> tableColumnList) {
         StringBuilder builder = new StringBuilder();
-        for (TableColumn tableColumn : tablraColumList) {
+        for (TableColumn tableColumn : tableColumnList) {
             if (tableColumn.getColumnName().equalsIgnoreCase("id") && StrUtil.isBlank(tableColumn.getColumnComment())) {
                 tableColumn.setColumnComment("编号");
             }
-            if (tableColumn.getColumnName().equalsIgnoreCase("deleted") ||
-                    tableColumn.getColumnName().equalsIgnoreCase("create_time") ||
-                    tableColumn.getColumnName().equalsIgnoreCase("update_time")
-            ) { //排除deleted create_time update_time字段（没用，无需关注）
+            if (tableColumn.getColumnName().equalsIgnoreCase("deleted") || tableColumn.getColumnName().equalsIgnoreCase("create_time")
+                    || tableColumn.getColumnName().equalsIgnoreCase("update_time")) {  // 排除deleted create_time  update_time 这个无需关注的字段
                 continue;
             }
-            String colum =  SPACE4 + SPACE8 + "<el-table-column prop=\""
-                    + tableColumn.getColumnName() + "\" label=\""
-                    + tableColumn.getColumnComment() +"\"></el-table-column>\n";
-            builder.append(colum);
+            String camelCaseName = StrUtil.toCamelCase(tableColumn.getColumnName());
+            if (tableColumn.getColumnName().endsWith("img")) {
+                builder.append(SPACE6).append("<el-table-column label=\"图片\"><template #default=\"scope\"><el-image preview-teleported style=\"width: 100px; height: 100px\" :src=\"scope.row.").append(camelCaseName).append("\" :preview-src-list=\"[scope.row.img]\"></el-image></template></el-table-column>\n");
+            } else if (tableColumn.getColumnName().endsWith("file")) {
+                builder.append(SPACE6).append("<el-table-column label=\"文件\"><template #default=\"scope\"> <a :href=\"scope.row.").append(camelCaseName).append("\" target=\"_blank\" style=\"text-decoration: none; color: dodgerblue\">点击下载</a></template></el-table-column>\n");
+            } else {
+                builder.append(SPACE6).append("<el-table-column prop=\"").append(camelCaseName).append("\" label=\"").append(tableColumn.getColumnComment()).append("\"></el-table-column>\n");
+            }
         }
         return builder.toString();
     }
-/*
-表单body
- */
-    public static String getVueFormBody(List<TableColumn> tablraColumList){
+
+    private static String getVueFormBody(List<TableColumn> tableColumnList) {
         StringBuilder builder = new StringBuilder();
-        for (TableColumn tableColumn : tablraColumList) {
+        for (TableColumn tableColumn : tableColumnList) {
             if (tableColumn.getColumnName().equalsIgnoreCase("id")) {
                 continue;
             }
-            if (tableColumn.getColumnName().equalsIgnoreCase("deleted") ||
-                    tableColumn.getColumnName().equalsIgnoreCase("create_time") ||
-                    tableColumn.getColumnName().equalsIgnoreCase("update_time")
-            ) { //排除deleted create_time update_time字段（没用，无需关注）
+            if (tableColumn.getColumnName().equalsIgnoreCase("deleted") || tableColumn.getColumnName().equalsIgnoreCase("create_time")
+                    || tableColumn.getColumnName().equalsIgnoreCase("update_time")) {  // 排除deleted create_time  update_time 这个无需关注的字段
                 continue;
             }
-
-            String column = SPACE2 + SPACE8 +"<el-form-item prop=\""+ tableColumn.getColumnName() +"\" label=\""
-                    + tableColumn.getColumnComment() +"\" >\n" +
-                    SPACE2 + SPACE8 +"            <el-input v-model=\"state.form."+ tableColumn.getColumnName() +"\" autocomplete=\"off\"/>\n" +
-                    "          </el-form-item>\n";
-
-            builder.append(column);
+            String camelCaseName = StrUtil.toCamelCase(tableColumn.getColumnName());
+            builder.append(SPACE8).append("<el-form-item prop=\"").append(camelCaseName).append("\" label=\"").append(tableColumn.getColumnComment()).append("\">\n");
+            if (tableColumn.getColumnName().contains("time")) {
+                // 日期时间
+                builder.append(SPACE10).append("<el-date-picker v-model=\"state.form.").append(camelCaseName)
+                        .append("\" type=\"datetime\" value-format=\"YYYY-MM-DD HH:mm:ss\" placeholder=\"选择日期时间\"></el-date-picker>\n");
+            } else if (tableColumn.getColumnName().endsWith("date")) {
+                // 日期
+                builder.append(SPACE10).append("<el-date-picker v-model=\"state.form.").append(camelCaseName).append("\" type=\"date\" value-format=\"YYYY-MM-DD\" placeholder=\"选择日期\"></el-date-picker>\n");
+            } else if (tableColumn.getColumnName().endsWith("file")) {
+                // 文件上传
+                builder.append(SPACE10).append("<el-upload :show-file-list=\"false\" :action=\"`http://${config.serverUrl}/file/upload`\" ref=\"file\" :headers=\"{ Authorization: token}\" :on-success=\"handleFileUploadSuccess\">\n");
+                builder.append(SPACE10).append("  <el-button size=\"small\" type=\"primary\">点击上传</el-button>\n");
+                builder.append(SPACE10).append("</el-upload>\n");
+            } else if (tableColumn.getColumnName().endsWith("img")) {
+                // 文件上传
+                builder.append(SPACE10).append("<el-upload :show-file-list=\"false\" :action=\"`http://${config.serverUrl}/file/upload`\" ref=\"file\" :headers=\"{ Authorization: token}\" :on-success=\"handleImgUploadSuccess\">\n");
+                builder.append(SPACE10).append("  <el-button size=\"small\" type=\"primary\">点击上传</el-button>\n");
+                builder.append(SPACE10).append("</el-upload>\n");
+            } else {
+                builder.append(SPACE10).append("<el-input v-model=\"state.form.").append(camelCaseName).append("\" autocomplete=\"off\"></el-input>\n");
+            }
+            builder.append(SPACE8).append("</el-form-item>\n");
         }
         return builder.toString();
     }
-    /*
-    获取数据库列表信息
-     */
-    private static List<TableColumn> getTableColumns(String tableName){
-        //获取数据库连接的信息
-        DBProp dbProp = getDBProp();
-        //连接数据库
-        DataSource dataSource = new SimpleDataSource("jdbc:mysql://localhost:3306/information_schema",dbProp.getUsername(),dbProp.getPassword());
-        Db db = DbUtil.use(dataSource);
 
-        //实际要生成代码的数据库的名称
-        String url = dbProp.getUrl();
-        String schema = url.substring(url.indexOf("3306/") + 5, url.indexOf("?"));
-        List<TableColumn> tablraColumList = new ArrayList<>();
-
-        try {
-            List<Entity> columns = db.findAll(Entity.create("COLUMNS").set("TABLE_SCHEMA", schema).set("TABLE_NAME", tableName));
-            for (Entity entity : columns) {
-                String columnName = entity.getStr("COLUMN_NAME");//字段名称
-                String dataType = entity.getStr("DATA_TYPE");//类型名
-                String columnComment = entity.getStr("COLUMN_COMMENT");//注释内容
-                TableColumn tableColumn = TableColumn.builder().columnName(columnName).dataType(dataType).columnComment(columnComment).build();
-                tablraColumList.add(tableColumn);
-            }
-            //封装结构化的表数据信息
-            System.out.println(tablraColumList);
-        }catch (SQLException e){
-            throw new RuntimeException(e);
-        }
-        return tablraColumList;
-    }
-    /*
-    获取前缀名
-     */
-    public static String getlowerEntity(String tableName){
+    private static String getLowerEntity(String tableName) {
         tableName = tableName.replaceAll("t_", "").replaceAll("sys_", "");
-        //toCamelCase下划线转驼峰
         return StrUtil.toCamelCase(tableName);
     }
-    /*
-    获取entity名 并第一个字母大写
-     */
-    public static String getEntity(String tableName){
-        String lowerEntity = getlowerEntity(tableName);
-        //toCamelCase下划线转驼峰
-        return lowerEntity.substring(0,1).toUpperCase() + lowerEntity.substring(1);
+
+    private static String getEntity(String tableName) {
+        String lowerEntity = getLowerEntity(tableName);
+        return lowerEntity.substring(0, 1).toUpperCase() + lowerEntity.substring(1);
     }
 
-    /*
-    数据库连接
-     */
-    public static DBProp getDBProp() {
+    private static DBProp getDBProp() {
         ClassPathResource resource = new ClassPathResource("application.yml");
         YamlPropertiesFactoryBean yamlPropertiesFactoryBean = new YamlPropertiesFactoryBean();
         yamlPropertiesFactoryBean.setResources(resource);
@@ -206,7 +255,10 @@ public class CodeGenerator {
                     builder.controllerBuilder().fileOverride().enableRestStyle().enableHyphenStyle()
                             .serviceBuilder().fileOverride()
                             .mapperBuilder().fileOverride()
-                            .entityBuilder().fileOverride().enableLombok().addTableFills(new Column("create_time", FieldFill.INSERT));
+                            .entityBuilder().fileOverride().enableLombok()
+                            .logicDeleteColumnName("deleted")
+                            .addTableFills(new Column("create_time", FieldFill.INSERT))
+                            .addTableFills(new Column("update_time", FieldFill.INSERT_UPDATE));
                     builder.addInclude(tableName) // 设置需要生成的表名
                             .addTablePrefix("t_", "sys_"); // 设置过滤表前缀
                 })

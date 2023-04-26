@@ -1,5 +1,6 @@
 package ${package.Controller};
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelReader;
 import cn.hutool.poi.excel.ExcelWriter;
@@ -52,42 +53,48 @@ import ${package.Entity}.${entity};
     @Resource
     private ${table.serviceName} ${table.entityPath}Service;
 
-    // 新增
     @PostMapping
+    @SaCheckPermission("${table.entityPath}.add")
     public Result save(@RequestBody ${entity} ${table.entityPath}) {
-            ${table.entityPath}Service.save(${table.entityPath});
-            return Result.success();
+    ${table.entityPath}Service.save(${table.entityPath});
+    return Result.success();
     }
-    //更新
+
     @PutMapping
+    @SaCheckPermission("${table.entityPath}.edit")
     public Result update(@RequestBody ${entity} ${table.entityPath}) {
-            ${table.entityPath}Service.updateById(${table.entityPath});
-            return Result.success();
+    ${table.entityPath}Service.updateById(${table.entityPath});
+    return Result.success();
     }
 
     @DeleteMapping("/{id}")
+    @SaCheckPermission("${table.entityPath}.delete")
     public Result delete(@PathVariable Integer id) {
     ${table.entityPath}Service.removeById(id);
     return Result.success();
     }
 
     @PostMapping("/del/batch")
+    @SaCheckPermission("${table.entityPath}.deleteBatch")
     public Result deleteBatch(@RequestBody List<Integer> ids) {
     ${table.entityPath}Service.removeByIds(ids);
     return Result.success();
     }
 
     @GetMapping
+    @SaCheckPermission("${table.entityPath}.list")
     public Result findAll() {
     return Result.success(${table.entityPath}Service.list());
     }
 
     @GetMapping("/{id}")
+    @SaCheckPermission("${table.entityPath}.list")
     public Result findOne(@PathVariable Integer id) {
     return Result.success(${table.entityPath}Service.getById(id));
     }
 
     @GetMapping("/page")
+    @SaCheckPermission("${table.entityPath}.list")
     public Result findPage(@RequestParam(defaultValue = "") String name,
     @RequestParam Integer pageNum,
     @RequestParam Integer pageSize) {
@@ -100,6 +107,7 @@ import ${package.Entity}.${entity};
     * 导出接口
     */
     @GetMapping("/export")
+    @SaCheckPermission("${table.entityPath}.export")
     public void export(HttpServletResponse response) throws Exception {
     // 从数据库查询出所有的数据
     List<${entity}> list = ${table.entityPath}Service.list();
@@ -127,6 +135,7 @@ import ${package.Entity}.${entity};
     * @throws Exception
     */
     @PostMapping("/import")
+    @SaCheckPermission("${table.entityPath}.import")
     public Result imp(MultipartFile file) throws Exception {
     InputStream inputStream = file.getInputStream();
     ExcelReader reader = ExcelUtil.getReader(inputStream);

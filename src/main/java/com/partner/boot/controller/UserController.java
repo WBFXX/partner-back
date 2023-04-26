@@ -53,7 +53,6 @@ public class UserController {
     }
     //更新
     @PutMapping
-    @SaCheckPermission("user.update")
     public Result update(@RequestBody User user) {
         userService.updateById(user);
         return Result.success();

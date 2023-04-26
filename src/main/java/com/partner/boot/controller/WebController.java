@@ -76,4 +76,22 @@ public class WebController
         String newPass = userService.passwordReset(userRequest);
         return Result.success(newPass);
         }
+    // 修改密码
+    @PostMapping("/password/change")
+    public Result passwordChange(@RequestBody UserRequest userRequest) {
+        userService.passwordChange(userRequest);
+        return Result.success();
+    }
+
+    // 更新个人信息
+    @PutMapping("/updateUser")
+    public Result updateUser(@RequestBody User user) {
+        Object loginId = StpUtil.getLoginId();
+        if (!loginId.equals(user.getUid())) {
+            Result.error("无权限");
+        }
+        userService.updateById(user);
+        return Result.success(user);
+    }
+
 }
